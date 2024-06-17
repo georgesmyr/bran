@@ -45,6 +45,15 @@ enum Commands {
         /// File to hash
         file: String,
     },
+
+    LsTree {
+        /// List names only flag
+        #[arg(short, long)]
+        name_only: bool,
+
+        /// Object hash to list
+        object_hash: String,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -73,6 +82,12 @@ fn main() -> anyhow::Result<()> {
 
         // Hash object, optionally write to file
         Commands::HashObject { write, file } => commands::hash_object::invoke(&file, write)?,
+
+        // List tree by object ID
+        Commands::LsTree {
+            name_only,
+            object_hash,
+        } => commands::ls_tree::invoke(&object_hash, name_only)?,
     }
     // let ws = Workspace::new(&path);
     // let repo_list = ws.list_repo();

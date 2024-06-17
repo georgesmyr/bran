@@ -1,6 +1,6 @@
-use anyhow::Context;
-use crate::object::Object;
 use crate::kind::ObjectKind;
+use crate::object::Object;
+use anyhow::Context;
 
 /// Invokes the `cat-file` subcommand.
 ///
@@ -17,7 +17,7 @@ pub(crate) fn invoke(pretty_print: bool, object_hash: &str) -> anyhow::Result<()
         pretty_print,
         "Mode must be given without -p, and we don't support mode yet."
     );
-    
+
     let mut object = Object::read(object_hash)?;
 
     match object.kind {
@@ -32,7 +32,7 @@ pub(crate) fn invoke(pretty_print: bool, object_hash: &str) -> anyhow::Result<()
                 ".git/object file was not the expected size (expected: {}, actual: {n})",
                 object.size
             );
-        },
+        }
         _ => anyhow::bail!("Object type not supported yet."),
     };
 

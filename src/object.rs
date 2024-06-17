@@ -1,21 +1,20 @@
-use anyhow::Context;
 use anyhow;
+use anyhow::Context;
+use std::ffi::CStr;
 use std::fs;
-use std::path::Path;
 use std::io::prelude::*;
 use std::io::BufReader;
+use std::path::Path;
 use uuid::Uuid;
-use std::ffi::CStr;
 
 use crate::hashwriter::HashWriter;
-use crate::oid::ObjectID;
 use crate::kind::ObjectKind;
+use crate::oid::ObjectID;
 
+use flate2::read::ZlibDecoder;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
 use sha1::Digest;
-use flate2::read::ZlibDecoder;
-
 
 /// Represents an object.
 pub(crate) struct Object<R> {
@@ -71,7 +70,9 @@ impl Object<()> {
             .context("Read header terminated by null byte.")?;
         let header = CStr::from_bytes_with_nul(&buffer)
             .context("We know there is one null byte at the end.")?;
-        let header = header.to_str().context("The header is not properly UTF-8 encoded.")?;
+        let header = header
+            .to_str()
+            .context("The header is not properly UTF-8 encoded.")?;
 
         let (kind, size) = match header.split_once(' ') {
             Some((kind, size)) => (kind, size),
@@ -87,21 +88,19 @@ impl Object<()> {
             _ => anyhow::bail!("Object kind is not one of the acceptables."),
         };
 
-        let size = size
-            .parse::<u64>()
-            .context(format!("Object header does not contain a valid size in bytes: {}", size))?;
+        let size = size.parse::<u64>().context(format!(
+            "Object header does not contain a valid size in bytes: {}",
+            size
+        ))?;
         let reader = reader.take(size);
-        Ok(Object {
-            kind,
-            size,
-            reader,
-        })
+        Ok(Object { kind, size, reader })
     }
 }
 
-impl<R> Object<R> 
-where R: Read {
-
+impl<R> Object<R>
+where
+    R: Read,
+{
     /// Calculates the hash of the object and returns the resulting `ObjectID`.
     ///
     /// This method writes the object to the given writer, compressing it with zlib and calculating its hash.
@@ -114,7 +113,6 @@ where R: Read {
     ///
     /// Returns a `Result` containing the `ObjectID` of the written object if successful, or an `anyhow::Error` if an error occurs.
     pub(crate) fn write_to(mut self, writer: impl Write) -> anyhow::Result<ObjectID> {
-        
         let writer = ZlibEncoder::new(writer, Compression::default());
         let mut writer = HashWriter::new(writer);
 
@@ -134,7 +132,6 @@ where R: Read {
     /// Returns a `Result` containing the `ObjectID` of the written object if successful, or an `anyhow::Error` if an error occurs.
     pub(crate) fn hash(self) -> anyhow::Result<ObjectID> {
         self.write_to(std::io::sink())
-        
     }
 
     /// Writes the object to the database.

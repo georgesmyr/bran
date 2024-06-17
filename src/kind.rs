@@ -11,7 +11,6 @@ pub(crate) enum ObjectKind {
 /// Implements the `Display` trait for `ObjectKind`.
 /// This allows `ObjectKind` instances to be formatted as strings.
 impl fmt::Display for ObjectKind {
-
     /// Formats the `ObjectKind` instance as a string.
     ///
     /// # Arguments
@@ -25,7 +24,7 @@ impl fmt::Display for ObjectKind {
         match self {
             ObjectKind::Blob => write!(f, "blob"),
             ObjectKind::Tree => write!(f, "tree"),
-            ObjectKind::Commit => write!(f, "commit")
+            ObjectKind::Commit => write!(f, "commit"),
         }
     }
 }

@@ -3,7 +3,6 @@ use std::path::Path;
 
 const REPO_DIRNAME: &str = ".git";
 
-
 /// Invokes the `init` subcommand.
 ///
 /// # Arguments

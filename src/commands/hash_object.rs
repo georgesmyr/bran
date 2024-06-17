@@ -1,6 +1,5 @@
-use anyhow::Context;
 use crate::object::Object;
-
+use anyhow::Context;
 
 /// Invokes the `hash-object` subcommand.
 ///
@@ -15,13 +14,9 @@ use crate::object::Object;
 pub(crate) fn invoke(path: &str, write: bool) -> anyhow::Result<()> {
     let object = Object::blob_from_file(path).context("Open blob input file")?;
     let hash = if write {
-        object
-            .write()
-            .context("Write blob in database.")?
+        object.write().context("Write blob in database.")?
     } else {
-        object
-            .hash()
-            .context("Hash blob.")?
+        object.hash().context("Hash blob.")?
     };
 
     let hash = hash.to_string();
