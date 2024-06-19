@@ -1,15 +1,7 @@
+mod objects;
 mod commands;
-mod hashwriter;
-mod kind;
-mod object;
-mod oid;
-mod workspace;
-// use workspace::Workspace;
 
-// use std::env;
-// use object::Object;
 
-// use std::path::{Path, PathBuf};
 use clap::Parser;
 use clap::Subcommand;
 
@@ -54,11 +46,12 @@ enum Commands {
         /// Object hash to list
         object_hash: String,
     },
+
+    // WriteTree 
+
 }
 
 fn main() -> anyhow::Result<()> {
-    // let cwd = env::current_dir().unwrap();
-    // let path = cwd.join("xxx");
 
     let args = GitCLI::parse();
 
@@ -88,19 +81,10 @@ fn main() -> anyhow::Result<()> {
             name_only,
             object_hash,
         } => commands::ls_tree::invoke(&object_hash, name_only)?,
+
+        // Write tree
+        // Commands::WriteTree => commands::write_tree::invoke()?,
     }
-    // let ws = Workspace::new(&path);
-    // let repo_list = ws.list_repo();
-
-    // for p in &repo_list {
-    //     let mut blob = Object::blob_from_file(p).unwrap();
-    //     let hash = blob.hash()?.to_string();
-    //     let mut blob2 = Object::read(&hash)?;
-
-    //     let string = blob2.contents().unwrap();
-    //     println!("{:?}", string);
-
-    // }
 
     Ok(())
 }

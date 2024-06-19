@@ -1,4 +1,4 @@
-use crate::object::Object;
+use crate::objects::Object;
 use anyhow::Context;
 
 /// Invokes the `hash-object` subcommand.

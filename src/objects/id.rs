@@ -14,12 +14,16 @@ impl ObjectID {
     /// # Returns
     ///
     /// A new ObjectID instance.
-    pub(crate) fn new(bytes: [u8; 20]) -> ObjectID {
+    pub(crate) fn from_bytes(bytes: [u8; 20]) -> ObjectID {
         ObjectID { bytes }
     }
 
     /// Returns the hexadecimal hash representation of the Object ID.
+    ///
+    /// # Returns
+    ///
+    /// A string containing the hexadecimal hash representation of the Object ID.
     pub(crate) fn to_string(&self) -> String {
-        self.bytes.iter().map(|b| format!("{:02x}", b)).collect()
+        hex::encode(&self.bytes)
     }
 }

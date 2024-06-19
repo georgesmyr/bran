@@ -1,5 +1,5 @@
-use crate::kind::ObjectKind;
-use crate::object::Object;
+use crate::objects::kind::ObjectKind;
+use crate::objects::Object;
 use anyhow::Context;
 use std::ffi::CStr;
 use std::io::prelude::*;

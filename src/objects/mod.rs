@@ -7,9 +7,13 @@ use std::io::BufReader;
 use std::path::Path;
 use uuid::Uuid;
 
-use crate::hashwriter::HashWriter;
-use crate::kind::ObjectKind;
-use crate::oid::ObjectID;
+pub(crate) mod hashwriter;
+pub(crate) mod kind;
+pub(crate) mod id;
+
+use crate::objects::hashwriter::HashWriter;
+use crate::objects::kind::ObjectKind;
+use crate::objects::id::ObjectID;
 
 use flate2::read::ZlibDecoder;
 use flate2::write::ZlibEncoder;
@@ -120,7 +124,7 @@ where
         std::io::copy(&mut self.reader, &mut writer).context("Stream file into blob.")?;
         let _ = writer.writer.finish()?;
         let hash = writer.hasher.finalize();
-        Ok(ObjectID::new(hash.into()))
+        Ok(ObjectID::from_bytes(hash.into()))
     }
 
     /// Calculates the hash of the object and returns the resulting `ObjectID`.
@@ -159,14 +163,4 @@ where
         Ok(object_id)
     }
 
-    // pub(crate) fn contents(&mut self) -> anyhow::Result<String> {
-    //     let mut string = String::new();
-    //     let n = self.reader.read_to_string(&mut string).context("Failed to read from read file.")?;
-    //     anyhow::ensure!(
-    //         n == self.size as usize,
-    //         "Read {} bytes, expected {} bytes.",
-    //         n, self.size
-    //     );
-    //     Ok(string)
-    // }
 }
