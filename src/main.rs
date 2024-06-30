@@ -1,58 +1,32 @@
-mod objects;
+mod cli;
+mod cmp;
 mod commands;
+mod index;
+mod objects;
 
+use crate::objects::Object;
 
+use crate::cli::{Commands, GitCLI};
 use clap::Parser;
-use clap::Subcommand;
 
-#[derive(Parser)]
-#[command(version, about, long_about = None)]
-struct GitCLI {
-    #[command(subcommand)]
-    command: Commands,
-}
-
-#[derive(Subcommand)]
-enum Commands {
-    Init {
-        /// Optional path to initialize
-        #[arg(short, long)]
-        path: Option<String>,
-    },
-
-    CatFile {
-        /// Pretty print the object
-        #[arg(short, long)]
-        pretty_print: bool,
-
-        /// Object hash to cat
-        object_hash: String,
-    },
-
-    HashObject {
-        /// Write the object to the object database
-        #[arg(short, long)]
-        write: bool,
-
-        /// File to hash
-        file: String,
-    },
-
-    LsTree {
-        /// List names only flag
-        #[arg(short, long)]
-        name_only: bool,
-
-        /// Object hash to list
-        object_hash: String,
-    },
-
-    // WriteTree 
-
-}
+use std::path::{Path, PathBuf};
 
 fn main() -> anyhow::Result<()> {
+    // let index_path = Path::new(".git/index");
+    // let file_path = Path::new("world.txt");
+    // let mut index = index::Index::init(index_path)?;
+    // let mut blob = objects::blob::Blob::from_file(file_path)?;
+    // let file = std::fs::File::open(file_path)?;
+    // let meta = file.metadata()?;
+    // let oid = blob.hash()?;
+    // let entry = index::IndexEntry::new(file_path.to_path_buf(), oid, &meta);
+    // index.add(entry);
 
+    // for entry in index.entries() {
+    //     println!("{:?}", entry);
+    // }
+
+    // index.write("new_index")?;
     let args = GitCLI::parse();
 
     match args.command {
@@ -81,9 +55,12 @@ fn main() -> anyhow::Result<()> {
             name_only,
             object_hash,
         } => commands::ls_tree::invoke(&object_hash, name_only)?,
-
         // Write tree
-        // Commands::WriteTree => commands::write_tree::invoke()?,
+        Commands::WriteTree { tree_path } => match tree_path {
+            Some(path) => commands::write_tree::invoke(Path::new(&path))?,
+            None => commands::write_tree::invoke(Path::new("."))?,
+        },
+        _ => unimplemented!(),
     }
 
     Ok(())

@@ -1,3 +1,4 @@
+use crate::objects::blob::Blob;
 use crate::objects::Object;
 use anyhow::Context;
 
@@ -12,11 +13,11 @@ use anyhow::Context;
 ///
 /// * Hash of the object.
 pub(crate) fn invoke(path: &str, write: bool) -> anyhow::Result<()> {
-    let object = Object::blob_from_file(path).context("Open blob input file")?;
+    let mut blob = Blob::from_file(path).with_context(|| format!("Unable to hash {}.", path))?;
     let hash = if write {
-        object.write().context("Write blob in database.")?
+        blob.write().context("Failed to write blob in database.")?
     } else {
-        object.hash().context("Hash blob.")?
+        blob.hash().context("Failed to hash blob.")?
     };
 
     let hash = hash.to_string();

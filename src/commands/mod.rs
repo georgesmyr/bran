@@ -1,5 +1,6 @@
-pub(crate) mod cat_file;
-pub(crate) mod hash_object;
-pub(crate) mod init;
-pub(crate) mod ls_tree;
-pub(crate) mod write_tree;
+pub mod cat_file;
+pub mod hash_object;
+pub mod init;
+pub mod ls_files;
+pub mod ls_tree;
+pub mod write_tree;

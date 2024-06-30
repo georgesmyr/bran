@@ -1,6 +1,7 @@
 use std::fmt;
 
 /// Represents the kind of object.
+#[derive(Clone, Debug)]
 pub(crate) enum ObjectKind {
     Blob,
     Tree,

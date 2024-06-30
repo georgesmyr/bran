@@ -3,15 +3,28 @@ name = "bran"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "bran"
+path = "src/main.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.86"
+byteorder = "1.5.0"
 clap = { version = "4.5.6", features = ["derive"] }
 clap_derive = "4.5.4"
+filetime = "0.2.23"
 flate2 = "1.0.30"
+fs2 = "0.4.3"
 hex = "0.4.3"
 sha1 = "0.10.6"
 tempfile = "3.10.1"
 uuid = { version = "1.8.0", features = ["v4", "fast-rng"] }
 walkdir = "2.5.0"
+
+
+[dev-dependencies]
+assert_cmd = "2.0"
+tempfile = "3.3"
+predicates = "3.1"

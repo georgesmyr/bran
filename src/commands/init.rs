@@ -1,20 +1,21 @@
 use std::fs;
 use std::path::Path;
 
-const REPO_DIRNAME: &str = ".git";
-
 /// Invokes the `init` subcommand.
 ///
 /// # Arguments
 ///
 /// * `path` - Path of the repository to initialize.
 ///
-pub(crate) fn invoke(path: &str) {
-    let mut repo_dir = Path::new(path).join(REPO_DIRNAME);
+pub fn invoke(path: &str) {
+    let mut repo_dir = Path::new(path).join(".git");
 
     if repo_dir.exists() {
         repo_dir = fs::canonicalize(repo_dir).unwrap();
-        println!("Reinitialized existring Git repository in {:?}", repo_dir);
+        println!(
+            "Reinitialized existing Git repository in {}",
+            repo_dir.display()
+        );
     } else {
         fs::create_dir_all(&repo_dir).unwrap();
         repo_dir = fs::canonicalize(repo_dir).unwrap();
@@ -27,6 +28,6 @@ pub(crate) fn invoke(path: &str) {
         fs::create_dir(&refs_dir).unwrap();
         fs::write(&head_path, "ref: refs/heads/main\n").unwrap();
 
-        println!("Initialized empty Git repository in {:?}", repo_dir);
+        println!("Initialized empty Git repository in {}", repo_dir.display());
     }
 }

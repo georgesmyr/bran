@@ -1,19 +1,34 @@
-use crate::entry::mode::EntryMode;
+use crate::objects::tree::mode::EntryMode;
 use std::cmp::Ordering;
 use std::ffi::OsStr;
 
-
-pub(crate) fn compare_base_name(name1: &OsStr,
-                                mode1: &EntryMode,
-                                name2: &OsStr,
-                                mode2: &EntryMode) -> Ordering {
-
+/// Compares the base name of two entries.
+///
+/// This function compares the base name of two entries, taking into account their modes.
+/// It returns an `Ordering` value that indicates the relative order of the entries.
+///
+/// # Arguments
+///
+/// * `name1` - The base name of the first entry.
+/// * `mode1` - The mode of the first entry.
+/// * `name2` - The base name of the second entry.
+/// * `mode2` - The mode of the second entry.
+///
+/// # Returns
+///
+/// An `Ordering` value indicating the relative order of the entries.
+pub(crate) fn compare_base_name(
+    name1: &OsStr,
+    mode1: &EntryMode,
+    name2: &OsStr,
+    mode2: &EntryMode,
+) -> Ordering {
     let name1 = name1.as_encoded_bytes();
     let name2 = name2.as_encoded_bytes();
     let common_len = std::cmp::min(name1.len(), name2.len());
 
     match name1[..common_len].cmp(&name2[..common_len]) {
-        Ordering::Equal => {},
+        Ordering::Equal => {}
         ord => return ord,
     }
 
@@ -46,5 +61,4 @@ pub(crate) fn compare_base_name(name1: &OsStr,
 
     // Compare the characters.
     c1.cmp(&c2)
-
 }

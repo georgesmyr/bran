@@ -1,127 +1,57 @@
-use anyhow;
+/// This module contains the implementation of various objects used in the repository.
+pub mod blob;
+pub mod commit;
+pub mod id;
+pub mod kind;
+pub mod tree;
+
+use crate::objects::{id::ObjectID, kind::ObjectKind};
 use anyhow::Context;
+use flate2::{read::ZlibDecoder, write::ZlibEncoder, Compression};
+use sha1::{Digest, Sha1};
 use std::ffi::CStr;
 use std::fs;
-use std::io::prelude::*;
-use std::io::BufReader;
+use std::io::{prelude::*, BufReader};
 use std::path::Path;
 use uuid::Uuid;
 
-pub(crate) mod hashwriter;
-pub(crate) mod kind;
-pub(crate) mod id;
+/// The `Object` trait represents a generic object in the repository.
+pub(crate) trait Object {
+    /// Returns the kind of the object.
+    fn kind(&self) -> &ObjectKind;
 
-use crate::objects::hashwriter::HashWriter;
-use crate::objects::kind::ObjectKind;
-use crate::objects::id::ObjectID;
+    /// Returns the size of the object in bytes.
+    fn size(&self) -> u64;
 
-use flate2::read::ZlibDecoder;
-use flate2::write::ZlibEncoder;
-use flate2::Compression;
-use sha1::Digest;
+    // Returns the contents of the object as a reader.
+    fn content(&mut self) -> &mut dyn Read;
 
-/// Represents an object.
-pub(crate) struct Object<R> {
-    pub(crate) kind: ObjectKind,
-    pub(crate) size: u64,
-    pub(crate) reader: R,
-}
-
-impl Object<()> {
-    /// Creates a blob object from a file.
+    /// Writes the object into the provided writer and returns the resulting object ID.
     ///
     /// # Arguments
     ///
-    /// * `path` - The path to the file.
+    /// * `writer` - The writer to write the object into.
     ///
     /// # Returns
     ///
-    /// Returns an `Object` containing the blob object.
-    pub(crate) fn blob_from_file(path: impl AsRef<Path>) -> anyhow::Result<Object<impl Read>> {
-        let path = path.as_ref();
-        let stat = fs::metadata(path).with_context(|| format!("Stat: {}", path.display()))?;
-        let file = fs::File::open(path).with_context(|| format!("File: {}", path.display()))?;
-
-        Ok(Object {
-            kind: ObjectKind::Blob,
-            size: stat.len(),
-            reader: file,
-        })
-    }
-
-    /// Reads an object from the database.
+    /// The resulting object ID.
     ///
-    /// # Arguments
+    /// # Errors
     ///
-    /// * `hash` - The hash of the object.
-    ///
-    /// # Returns
-    ///
-    /// Returns an `Object` containing the read object.
-    pub(crate) fn read(hash: &str) -> anyhow::Result<Object<impl BufRead>> {
-        // Create the object path from its hash
-        let path = format!(".git/objects/{}/{}", &hash[..2], &hash[2..]);
-
-        // Read the file into a buffer: Read & decompress
-        let file = fs::File::open(&path).context("Loading raw file from the database.")?;
-        let reader = ZlibDecoder::new(file);
-        let mut reader = BufReader::new(reader);
-        let mut buffer = Vec::new();
-
-        // Read header from the buffer: 'kind' 'size in bytes''null-byte'
-        reader
-            .read_until(0, &mut buffer)
-            .context("Read header terminated by null byte.")?;
-        let header = CStr::from_bytes_with_nul(&buffer)
-            .context("We know there is one null byte at the end.")?;
-        let header = header
-            .to_str()
-            .context("The header is not properly UTF-8 encoded.")?;
-
-        let (kind, size) = match header.split_once(' ') {
-            Some((kind, size)) => (kind, size),
-            None => anyhow::bail!(
-                ".git/objects file header did not start with a known type: '{header}'"
-            ),
-        };
-
-        let kind = match kind {
-            "blob" => ObjectKind::Blob,
-            "tree" => ObjectKind::Tree,
-            "commit" => ObjectKind::Commit,
-            _ => anyhow::bail!("Object kind is not one of the acceptables."),
-        };
-
-        let size = size.parse::<u64>().context(format!(
-            "Object header does not contain a valid size in bytes: {}",
-            size
-        ))?;
-        let reader = reader.take(size);
-        Ok(Object { kind, size, reader })
-    }
-}
-
-impl<R> Object<R>
-where
-    R: Read,
-{
-    /// Calculates the hash of the object and returns the resulting `ObjectID`.
-    ///
-    /// This method writes the object to the given writer, compressing it with zlib and calculating its hash.
-    ///
-    /// # Arguments
-    ///
-    /// * `writer` - The writer to which the object will be written.
-    ///
-    /// # Returns
-    ///
-    /// Returns a `Result` containing the `ObjectID` of the written object if successful, or an `anyhow::Error` if an error occurs.
-    pub(crate) fn write_to(mut self, writer: impl Write) -> anyhow::Result<ObjectID> {
+    /// Returns an `anyhow::Error` if there was an error writing the object into the writer.
+    fn write_into(&mut self, writer: impl Write) -> anyhow::Result<ObjectID> {
         let writer = ZlibEncoder::new(writer, Compression::default());
         let mut writer = HashWriter::new(writer);
+        // Write the header of the object: 'kind' 'size in bytes''null-byte'
+        write!(writer, "{} {}\0", &self.kind(), &self.size())?;
+        // Copy the contents of the object (reader) into the writer
+        let n = std::io::copy(self.content(), &mut writer).context("Stream blob into writer.")?;
+        anyhow::ensure!(
+            n == self.size(),
+            ".git/object file did not have the expected size. Expected size: {}. Actual size: {n})",
+            self.size()
+        );
 
-        write!(writer, "{} {}\0", &self.kind, &self.size)?;
-        std::io::copy(&mut self.reader, &mut writer).context("Stream file into blob.")?;
         let _ = writer.writer.finish()?;
         let hash = writer.hasher.finalize();
         Ok(ObjectID::from_bytes(hash.into()))
@@ -134,8 +64,8 @@ where
     /// # Returns
     ///
     /// Returns a `Result` containing the `ObjectID` of the written object if successful, or an `anyhow::Error` if an error occurs.
-    pub(crate) fn hash(self) -> anyhow::Result<ObjectID> {
-        self.write_to(std::io::sink())
+    fn hash(&mut self) -> anyhow::Result<ObjectID> {
+        self.write_into(std::io::sink())
     }
 
     /// Writes the object to the database.
@@ -145,7 +75,7 @@ where
     /// # Returns
     ///
     /// Returns a `Result` containing the `ObjectID` of the written object if successful, or an `anyhow::Error` if an error occurs.
-    pub(crate) fn write(self) -> anyhow::Result<ObjectID> {
+    fn write(&mut self) -> anyhow::Result<ObjectID> {
         let db_path = ".git/objects";
         let temp_filename = Uuid::new_v4().to_string();
         // Create the temporary path
@@ -153,7 +83,7 @@ where
         let temp_path = Path::new(&temp_path);
         // Write the object in a file at the temporary path
         let file = fs::File::create(temp_path).context("Writing object in temporary file.")?;
-        let object_id = self.write_to(file)?;
+        let object_id = self.write_into(file)?;
         let hash = object_id.to_string();
         // Create the final object path
         let object_path = format!("{}/{}/{}", &db_path, &hash[..2], &hash[2..]);
@@ -162,5 +92,109 @@ where
         let _ = fs::rename(&temp_path, &object_path);
         Ok(object_id)
     }
+}
 
+/// Reads an object from the database given its hash.
+///
+/// # Arguments
+///
+/// * `hash` - The hash of the object.
+///
+/// # Returns
+///
+/// A tuple containing the object kind, size in bytes, and a buffered reader for reading the object's data.
+///
+/// # Errors
+///
+/// This function can return an error if there are any issues with reading the object from the database.
+pub(crate) fn read_object(hash: &str) -> anyhow::Result<(ObjectKind, u64, impl BufRead)> {
+    // Create the object path from its hash
+    let path = format!(".git/objects/{}/{}", &hash[..2], &hash[2..]);
+
+    // Read the file into a buffer: Read & decompress
+    let file = fs::File::open(&path).context("Loading raw file from the database.")?;
+    let reader = ZlibDecoder::new(file);
+    let mut reader = BufReader::new(reader);
+    let mut buffer = Vec::new();
+
+    // Read header from the buffer: 'kind' 'size in bytes''null-byte'
+    reader
+        .read_until(0, &mut buffer)
+        .context("Read header terminated by null byte.")?;
+    let header = CStr::from_bytes_with_nul(&buffer)
+        .context("We know there is one null byte at the end.")?
+        .to_str()
+        .context("The header is not properly UTF-8 encoded.")?;
+
+    let (object_type, size) = match header.split_once(' ') {
+        Some((object_type, size)) => (object_type, size),
+        None => {
+            anyhow::bail!(".git/objects file header did not start with a known type: '{header}'")
+        }
+    };
+
+    // Parse the expected size of the object
+    let size = size.parse::<u64>().context(format!(
+        "Object header does not contain a valid size in bytes: {}",
+        size
+    ))?;
+
+    // Take the expected number of bytes from the reader
+    let reader = reader; //.take(size);
+
+    // Return the object depending on its type
+    let object_type = match object_type {
+        "blob" => ObjectKind::Blob,
+        "tree" => ObjectKind::Tree,
+        "commit" => ObjectKind::Commit,
+        _ => anyhow::bail!("Object kind is not one of the acceptables."),
+    };
+
+    Ok((object_type, size, reader))
+}
+
+/// A writer that calculates the SHA-1 hash of the written data.
+pub(crate) struct HashWriter<W> {
+    pub(crate) writer: W,
+    pub(crate) hasher: Sha1,
+}
+
+impl<W: Write> HashWriter<W> {
+    /// Constructs a new HashWriter.
+    pub(crate) fn new(writer: W) -> Self {
+        HashWriter {
+            writer,
+            hasher: Sha1::new(),
+        }
+    }
+}
+
+impl<W> Write for HashWriter<W>
+where
+    W: Write,
+{
+    /// Writes the given buffer to the writer and updates the hasher with the written data.
+    ///
+    /// # Arguments
+    ///
+    /// * `buf` - The buffer containing the data to be written.
+    ///
+    /// # Returns
+    ///
+    /// Returns the number of bytes written or an `std::io::Error` if an error occurred.
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let n = self.writer.write(buf)?;
+        self.hasher.update(&buf[..n]);
+        Ok(n)
+    }
+
+    /// Flushes the writer.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(())` if the flush operation was successful or an `std::io::Error` if an error occurred.
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.writer.flush()?;
+        Ok(())
+    }
 }
