@@ -1,14 +1,13 @@
-use clap::Parser;
-use clap::Subcommand;
+use clap;
 
-#[derive(Parser)]
+#[derive(clap::Parser)]
 #[command(version, about, long_about = None)]
 pub(crate) struct GitCLI {
     #[command(subcommand)]
     pub(crate) command: Commands,
 }
 
-#[derive(Subcommand)]
+#[derive(clap::Subcommand)]
 pub(crate) enum Commands {
     Init {
         /// Optional path to initialize
@@ -45,5 +44,11 @@ pub(crate) enum Commands {
 
     WriteTree {
         tree_path: Option<String>,
+    },
+
+    LsFiles,
+
+    Add {
+        path: String,
     },
 }

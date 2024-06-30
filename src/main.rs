@@ -1,32 +1,12 @@
-mod cli;
 mod cmp;
 mod commands;
 mod index;
 mod objects;
 
-use crate::objects::Object;
-
-use crate::cli::{Commands, GitCLI};
+use crate::commands::cli::{Commands, GitCLI};
 use clap::Parser;
 
-use std::path::{Path, PathBuf};
-
 fn main() -> anyhow::Result<()> {
-    // let index_path = Path::new(".git/index");
-    // let file_path = Path::new("world.txt");
-    // let mut index = index::Index::init(index_path)?;
-    // let mut blob = objects::blob::Blob::from_file(file_path)?;
-    // let file = std::fs::File::open(file_path)?;
-    // let meta = file.metadata()?;
-    // let oid = blob.hash()?;
-    // let entry = index::IndexEntry::new(file_path.to_path_buf(), oid, &meta);
-    // index.add(entry);
-
-    // for entry in index.entries() {
-    //     println!("{:?}", entry);
-    // }
-
-    // index.write("new_index")?;
     let args = GitCLI::parse();
 
     match args.command {
@@ -57,10 +37,15 @@ fn main() -> anyhow::Result<()> {
         } => commands::ls_tree::invoke(&object_hash, name_only)?,
         // Write tree
         Commands::WriteTree { tree_path } => match tree_path {
-            Some(path) => commands::write_tree::invoke(Path::new(&path))?,
-            None => commands::write_tree::invoke(Path::new("."))?,
+            Some(path) => commands::write_tree::invoke(std::path::Path::new(&path))?,
+            None => commands::write_tree::invoke(std::path::Path::new("."))?,
         },
-        _ => unimplemented!(),
+
+        // List files in index
+        Commands::LsFiles => commands::ls_files::invoke(".git/index")?,
+
+        // Add file to index
+        Commands::Add { path } => commands::add::invoke(&path)?,
     }
 
     Ok(())

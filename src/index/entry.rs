@@ -3,11 +3,9 @@ use anyhow::Context;
 use byteorder::{BigEndian, ReadBytesExt};
 use filetime::FileTime;
 use std::fs::Metadata;
-use std::io::{prelude::*, Cursor};
+use std::io::prelude::*;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
-
-use std::io::{Seek, SeekFrom};
 
 /// Represents an entry in the index.
 #[allow(dead_code)]

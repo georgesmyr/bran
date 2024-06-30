@@ -1,6 +1,4 @@
-use crate::objects::blob::Blob;
-use crate::objects::kind::ObjectKind;
-use crate::objects::read_object;
+use crate::objects;
 use crate::objects::Object;
 use anyhow::Context;
 
@@ -20,11 +18,11 @@ pub(crate) fn invoke(pretty_print: bool, object_hash: &str) -> anyhow::Result<()
         "Mode must be given without -p, and we don't support mode yet."
     );
 
-    let (kind, size, reader) = read_object(object_hash)?;
+    let (kind, size, reader) = objects::read_object(object_hash)?;
 
     match kind {
-        ObjectKind::Blob => {
-            let mut blob = Blob::new(size, reader);
+        objects::kind::ObjectKind::Blob => {
+            let mut blob = objects::blob::Blob::new(size, reader);
             let stdout = std::io::stdout();
             let mut stdout = stdout.lock();
             let n = std::io::copy(&mut blob.content(), &mut stdout)
@@ -36,12 +34,13 @@ pub(crate) fn invoke(pretty_print: bool, object_hash: &str) -> anyhow::Result<()
                 n
             )
         }
-        // ObjectKind::Tree => {
-        //     let tree = Tree::from_hash(object_hash).context("Failed to read tree")?;
-        //     for entry in tree.entries() {
-        //         println!("{}", entry);
-        //     }
-        // }
+        objects::kind::ObjectKind::Tree => {
+            let tree_entries =
+                objects::tree::Tree::from_hash(object_hash).context("Failed to read tree")?;
+            for entry in tree_entries {
+                println!("{}", entry);
+            }
+        }
         _ => anyhow::bail!("Object type not supported yet."),
     };
 

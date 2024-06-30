@@ -1,5 +1,3 @@
-use std::fmt;
-
 /// Represents an Object ID.
 #[derive(Clone)]
 pub(crate) struct ObjectID {
@@ -8,21 +6,6 @@ pub(crate) struct ObjectID {
 
 /// The `ObjectID` struct provides methods for creating, manipulating, and converting object IDs.
 impl ObjectID {
-    /// Creates an `ObjectID` from a hash string.
-    ///
-    /// # Arguments
-    ///
-    /// * `hash` - A string slice that represents the hash.
-    ///
-    /// # Returns
-    ///
-    /// An `ObjectID` created from the given hash.
-    pub(crate) fn from_hash(hash: impl AsRef<str>) -> ObjectID {
-        let mut bytes = [0; 20];
-        hex::decode_to_slice(hash.as_ref(), &mut bytes).unwrap();
-        ObjectID::from_bytes(bytes)
-    }
-
     /// Creates an `ObjectID` from a byte array.
     ///
     /// # Arguments
@@ -55,7 +38,7 @@ impl ObjectID {
     }
 }
 
-impl fmt::Display for ObjectID {
+impl std::fmt::Display for ObjectID {
     /// Formats the `ObjectID` for display.
     ///
     /// This method writes the `ObjectID` to the given formatter using the `to_string` method.
@@ -67,12 +50,12 @@ impl fmt::Display for ObjectID {
     /// # Returns
     ///
     /// This method returns a `fmt::Result` indicating whether the operation succeeded or not.
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.hash())
     }
 }
 
-impl fmt::Debug for ObjectID {
+impl std::fmt::Debug for ObjectID {
     /// Formats the `ObjectID` for debugging.
     ///
     /// This method writes the `ObjectID` to the given formatter using the `hash` method.
@@ -84,7 +67,7 @@ impl fmt::Debug for ObjectID {
     /// # Returns
     ///
     /// This method returns a `fmt::Result` indicating whether the operation succeeded or not.
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.hash())
     }
 }

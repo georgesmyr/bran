@@ -1,10 +1,6 @@
-use anyhow::Context;
-use std::io::Read;
-use std::path::Path;
-
-use crate::objects::kind::ObjectKind;
-use crate::objects::read_object;
+use crate::objects;
 use crate::objects::Object;
+use anyhow::Context;
 
 #[derive(Clone)]
 pub(crate) struct Blob<R> {
@@ -23,7 +19,7 @@ impl Blob<()> {
     /// # Returns
     ///
     /// Returns a `Blob` object with the specified size and reader.
-    pub(crate) fn new(size: u64, reader: impl Read) -> Blob<impl Read> {
+    pub(crate) fn new(size: u64, reader: impl std::io::Read) -> Blob<impl std::io::Read> {
         Blob {
             size,
             content: reader,
@@ -40,7 +36,9 @@ impl Blob<()> {
     ///
     /// Returns a `Result` containing a `Blob` with a reader if the file is successfully opened,
     /// or an `anyhow::Error` if opening the file or reading its metadata fails.
-    pub(crate) fn from_file(path: impl AsRef<Path>) -> anyhow::Result<Blob<impl Read>> {
+    pub(crate) fn from_file(
+        path: impl AsRef<std::path::Path>,
+    ) -> anyhow::Result<Blob<impl std::io::Read>> {
         let path = path.as_ref();
         let file = std::fs::File::open(path).context("Failed to open file.")?;
         let metadata = file.metadata().context("Failed to read file metadata.")?;
@@ -50,33 +48,15 @@ impl Blob<()> {
         let size = metadata.len();
         Ok(Blob::new(size, file))
     }
-
-    /// Reads a blob object from the given hash and returns a `Blob` with a reader.
-    ///
-    /// # Arguments
-    ///
-    /// * `hash` - A string slice representing the hash of the object to read.
-    ///
-    /// # Returns
-    ///
-    /// Returns a `Result` containing a `Blob` with a reader if the object is a blob,
-    /// or an `anyhow::Error` if the object is not a blob or if reading the object fails.
-    pub(crate) fn from_hash(hash: &str) -> anyhow::Result<Blob<impl Read>> {
-        let (kind, size, reader) = read_object(hash).context("Failed to read object.")?;
-        match kind {
-            ObjectKind::Blob => Ok(Blob::new(size, reader)),
-            _ => anyhow::bail!("Object is not a blob."),
-        }
-    }
 }
 
 impl<R> Object for Blob<R>
 where
-    R: Read,
+    R: std::io::Read,
 {
     /// Returns the kind of the object.
-    fn kind(&self) -> &ObjectKind {
-        &ObjectKind::Blob
+    fn kind(&self) -> &objects::kind::ObjectKind {
+        &objects::kind::ObjectKind::Blob
     }
 
     /// Returns the size of the object in bytes.
@@ -85,7 +65,7 @@ where
     }
 
     /// Returns a reference to the reader for the object's data.
-    fn content(&mut self) -> &mut dyn Read {
+    fn content(&mut self) -> &mut dyn std::io::Read {
         &mut self.content
     }
 }

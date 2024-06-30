@@ -1,5 +1,3 @@
-use std::fmt;
-use std::fs::Metadata;
 use std::os::unix::fs::PermissionsExt;
 
 /// Represents the mode of an entry in a tree object.
@@ -21,7 +19,7 @@ impl EntryMode {
     /// # Returns
     ///
     /// The corresponding `EntryMode` for the given metadata.
-    pub(crate) fn from_metadata(metadata: &Metadata) -> Self {
+    pub(crate) fn from_metadata(metadata: &std::fs::Metadata) -> Self {
         if metadata.is_dir() {
             EntryMode::Directory
         } else if metadata.is_symlink() {
@@ -72,7 +70,7 @@ impl EntryMode {
     }
 }
 
-impl fmt::Display for EntryMode {
+impl std::fmt::Display for EntryMode {
     /// Formats the `EntryMode` enum for debugging purposes.
     ///
     /// This method formats the `EntryMode` enum by writing its string representation to the given formatter.
@@ -84,7 +82,7 @@ impl fmt::Display for EntryMode {
     /// # Returns
     ///
     /// This method returns a `fmt::Result` indicating whether the formatting was successful.
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             EntryMode::Directory => write!(f, "40000"),
             EntryMode::Symlink => write!(f, "120000"),

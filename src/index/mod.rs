@@ -1,4 +1,5 @@
-mod entry;
+pub(crate) mod entry;
+
 use crate::cmp::compare_base_name;
 use crate::index::entry::IndexEntry;
 use crate::objects::tree::mode::EntryMode;
@@ -28,7 +29,8 @@ impl Index<()> {
     ///
     /// Returns a `Result` containing the newly created `Index` instance, or an `anyhow::Error`
     /// if an error occurs.
-    pub(crate) fn init(path: &Path) -> anyhow::Result<Index<File>> {
+    pub(crate) fn init(path: impl AsRef<Path>) -> anyhow::Result<Index<File>> {
+        let path = path.as_ref();
         let index_exists = path.exists();
 
         // Open index file with read/write and create permissions
@@ -50,11 +52,9 @@ impl Index<()> {
         // If the index exists, parse it; otherwise, create one.
         if index_exists {
             // Parse the index file
-            println!("Parsing existing index.");
             Index::parse_index(file)
         } else {
             // Create a new index file
-            println!("Creating new index.");
             Ok(Index::new(2, Vec::new(), file))
         }
     }
