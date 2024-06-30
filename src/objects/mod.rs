@@ -5,20 +5,15 @@ pub mod id;
 pub mod kind;
 pub mod tree;
 
-use crate::objects::{id::ObjectID, kind::ObjectKind};
+use crate::objects;
 use anyhow::Context;
-use flate2::{read::ZlibDecoder, write::ZlibEncoder, Compression};
-use sha1::{Digest, Sha1};
-use std::ffi::CStr;
-use std::fs;
-use std::io::{prelude::*, BufReader};
-use std::path::Path;
-use uuid::Uuid;
+use sha1::Digest;
+use std::io::prelude::*;
 
 /// The `Object` trait represents a generic object in the repository.
 pub(crate) trait Object {
     /// Returns the kind of the object.
-    fn kind(&self) -> &ObjectKind;
+    fn kind(&self) -> &objects::kind::ObjectKind;
 
     /// Returns the size of the object in bytes.
     fn size(&self) -> u64;
@@ -39,8 +34,8 @@ pub(crate) trait Object {
     /// # Errors
     ///
     /// Returns an `anyhow::Error` if there was an error writing the object into the writer.
-    fn write_into(&mut self, writer: impl Write) -> anyhow::Result<ObjectID> {
-        let writer = ZlibEncoder::new(writer, Compression::default());
+    fn write_into(&mut self, writer: impl Write) -> anyhow::Result<objects::id::ObjectID> {
+        let writer = flate2::write::ZlibEncoder::new(writer, flate2::Compression::default());
         let mut writer = HashWriter::new(writer);
         // Write the header of the object: 'kind' 'size in bytes''null-byte'
         write!(writer, "{} {}\0", &self.kind(), &self.size())?;
@@ -54,7 +49,7 @@ pub(crate) trait Object {
 
         let _ = writer.writer.finish()?;
         let hash = writer.hasher.finalize();
-        Ok(ObjectID::from_bytes(hash.into()))
+        Ok(objects::id::ObjectID::from_bytes(hash.into()))
     }
 
     /// Calculates the hash of the object and returns the resulting `ObjectID`.
@@ -63,33 +58,36 @@ pub(crate) trait Object {
     ///
     /// # Returns
     ///
-    /// Returns a `Result` containing the `ObjectID` of the written object if successful, or an `anyhow::Error` if an error occurs.
-    fn hash(&mut self) -> anyhow::Result<ObjectID> {
+    /// Returns a `Result` containing the `ObjectID` of the written object if successful, or an
+    /// `anyhow::Error` if an error occurs.
+    fn hash(&mut self) -> anyhow::Result<objects::id::ObjectID> {
         self.write_into(std::io::sink())
     }
 
     /// Writes the object to the database.
     ///
-    /// This method writes the object to a temporary file in the `.git/objects` directory, calculates its hash, and then moves it to the final object path.
+    /// This method writes the object to a temporary file in the `.git/objects` directory,
+    /// calculates its hash, and then moves it to the final object path.
     ///
     /// # Returns
     ///
-    /// Returns a `Result` containing the `ObjectID` of the written object if successful, or an `anyhow::Error` if an error occurs.
-    fn write(&mut self) -> anyhow::Result<ObjectID> {
+    /// Returns a `Result` containing the `ObjectID` of the written object if successful, or an
+    /// `anyhow::Error` if an error occurs.
+    fn write(&mut self) -> anyhow::Result<objects::id::ObjectID> {
         let db_path = ".git/objects";
-        let temp_filename = Uuid::new_v4().to_string();
+        let temp_filename = uuid::Uuid::new_v4().to_string();
         // Create the temporary path
         let temp_path = format!("{}/{}", &db_path, &temp_filename);
-        let temp_path = Path::new(&temp_path);
+        let temp_path = std::path::Path::new(&temp_path);
         // Write the object in a file at the temporary path
-        let file = fs::File::create(temp_path).context("Writing object in temporary file.")?;
+        let file = std::fs::File::create(temp_path).context("Writing object in temporary file.")?;
         let object_id = self.write_into(file)?;
         let hash = object_id.to_string();
         // Create the final object path
         let object_path = format!("{}/{}/{}", &db_path, &hash[..2], &hash[2..]);
-        let object_path = Path::new(&object_path);
-        let _ = fs::create_dir_all(object_path.parent().unwrap())?;
-        let _ = fs::rename(&temp_path, &object_path);
+        let object_path = std::path::Path::new(&object_path);
+        let _ = std::fs::create_dir_all(object_path.parent().unwrap())?;
+        let _ = std::fs::rename(&temp_path, &object_path);
         Ok(object_id)
     }
 }
@@ -107,21 +105,23 @@ pub(crate) trait Object {
 /// # Errors
 ///
 /// This function can return an error if there are any issues with reading the object from the database.
-pub(crate) fn read_object(hash: &str) -> anyhow::Result<(ObjectKind, u64, impl BufRead)> {
+pub(crate) fn read_object(
+    hash: &str,
+) -> anyhow::Result<(objects::kind::ObjectKind, u64, impl BufRead)> {
     // Create the object path from its hash
     let path = format!(".git/objects/{}/{}", &hash[..2], &hash[2..]);
 
     // Read the file into a buffer: Read & decompress
-    let file = fs::File::open(&path).context("Loading raw file from the database.")?;
-    let reader = ZlibDecoder::new(file);
-    let mut reader = BufReader::new(reader);
+    let file = std::fs::File::open(&path).context("Loading raw file from the database.")?;
+    let reader = flate2::read::ZlibDecoder::new(file);
+    let mut reader = std::io::BufReader::new(reader);
     let mut buffer = Vec::new();
 
     // Read header from the buffer: 'kind' 'size in bytes''null-byte'
     reader
         .read_until(0, &mut buffer)
         .context("Read header terminated by null byte.")?;
-    let header = CStr::from_bytes_with_nul(&buffer)
+    let header = std::ffi::CStr::from_bytes_with_nul(&buffer)
         .context("We know there is one null byte at the end.")?
         .to_str()
         .context("The header is not properly UTF-8 encoded.")?;
@@ -144,9 +144,9 @@ pub(crate) fn read_object(hash: &str) -> anyhow::Result<(ObjectKind, u64, impl B
 
     // Return the object depending on its type
     let object_type = match object_type {
-        "blob" => ObjectKind::Blob,
-        "tree" => ObjectKind::Tree,
-        "commit" => ObjectKind::Commit,
+        "blob" => objects::kind::ObjectKind::Blob,
+        "tree" => objects::kind::ObjectKind::Tree,
+        "commit" => objects::kind::ObjectKind::Commit,
         _ => anyhow::bail!("Object kind is not one of the acceptables."),
     };
 
@@ -156,7 +156,7 @@ pub(crate) fn read_object(hash: &str) -> anyhow::Result<(ObjectKind, u64, impl B
 /// A writer that calculates the SHA-1 hash of the written data.
 pub(crate) struct HashWriter<W> {
     pub(crate) writer: W,
-    pub(crate) hasher: Sha1,
+    pub(crate) hasher: sha1::Sha1,
 }
 
 impl<W: Write> HashWriter<W> {
@@ -164,7 +164,7 @@ impl<W: Write> HashWriter<W> {
     pub(crate) fn new(writer: W) -> Self {
         HashWriter {
             writer,
-            hasher: Sha1::new(),
+            hasher: sha1::Sha1::new(),
         }
     }
 }
