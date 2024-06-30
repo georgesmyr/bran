@@ -1,4 +1,5 @@
 use crate::objects::tree::Tree;
+use anyhow::Context;
 use std::path::Path;
 
 /// Writes a tree object from the given path to the database, and prints the resulting object ID.

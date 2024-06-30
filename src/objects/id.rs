@@ -6,6 +6,22 @@ pub(crate) struct ObjectID {
 
 /// The `ObjectID` struct provides methods for creating, manipulating, and converting object IDs.
 impl ObjectID {
+    /// Creates a new ObjectID with the given bytes.
+    /// Creates an `ObjectID` from a hash string.
+    ///
+    /// # Arguments
+    ///
+    /// * `hash` - A string slice that represents the hash.
+    ///
+    /// # Returns
+    ///
+    /// An `ObjectID` created from the given hash.
+    pub(crate) fn from_hash(hash: impl AsRef<str>) -> ObjectID {
+        let mut bytes = [0; 20];
+        hex::decode_to_slice(hash.as_ref(), &mut bytes).unwrap();
+        ObjectID::from_bytes(bytes)
+    }
+
     /// Creates an `ObjectID` from a byte array.
     ///
     /// # Arguments

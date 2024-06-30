@@ -1,9 +1,9 @@
 use std::ffi::{OsStr, OsString};
 use std::fmt;
 
+use crate::objects::id::ObjectID;
 use crate::objects::kind::ObjectKind;
 use crate::objects::tree::mode::EntryMode;
-use crate::objects::ObjectID;
 
 /// Represents an entry in a tree object.
 #[derive(Debug)]

@@ -46,6 +46,16 @@ pub(crate) enum Commands {
         tree_path: Option<String>,
     },
 
+    CommitTree {
+        tree_hash: String,
+
+        #[arg(short = 'p', long)]
+        parent_hash: Option<String>,
+
+        #[arg(short = 'm', long)]
+        message: String,
+    },
+
     LsFiles,
 
     Add {

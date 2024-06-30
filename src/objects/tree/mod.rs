@@ -11,12 +11,12 @@ pub(crate) mod mode;
 
 use crate::cmp::compare_base_name;
 use crate::objects::blob::Blob;
+use crate::objects::id::ObjectID;
 use crate::objects::kind::ObjectKind;
 use crate::objects::read_object;
 use crate::objects::tree::entry::TreeEntry;
 use crate::objects::tree::mode::EntryMode;
 use crate::objects::Object;
-use crate::objects::ObjectID;
 
 #[allow(dead_code)]
 pub(crate) struct Tree<R> {

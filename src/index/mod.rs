@@ -4,10 +4,7 @@ use crate::cmp::compare_base_name;
 use crate::index::entry::IndexEntry;
 use crate::objects::tree::mode::EntryMode;
 use anyhow::Context;
-use std::fs::File;
-use std::fs::OpenOptions;
-use std::io::{prelude::*, BufReader, Cursor};
-use std::path::Path;
+use std::io::prelude::*;
 
 const INDEX_VERSIONS: [u32; 3] = [2, 3, 4];
 
@@ -15,7 +12,7 @@ const INDEX_VERSIONS: [u32; 3] = [2, 3, 4];
 pub(crate) struct Index<R> {
     version: u32,
     entries: Vec<IndexEntry>,
-    reader: BufReader<R>,
+    reader: std::io::BufReader<R>,
 }
 
 impl Index<()> {
@@ -29,12 +26,12 @@ impl Index<()> {
     ///
     /// Returns a `Result` containing the newly created `Index` instance, or an `anyhow::Error`
     /// if an error occurs.
-    pub(crate) fn init(path: impl AsRef<Path>) -> anyhow::Result<Index<File>> {
+    pub(crate) fn init(path: impl AsRef<std::path::Path>) -> anyhow::Result<Index<std::fs::File>> {
         let path = path.as_ref();
         let index_exists = path.exists();
 
         // Open index file with read/write and create permissions
-        let file = OpenOptions::new()
+        let file = std::fs::OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
@@ -76,7 +73,7 @@ impl<R: Read> Index<R> {
         Index {
             version,
             entries,
-            reader: BufReader::new(reader),
+            reader: std::io::BufReader::new(reader),
         }
     }
 
@@ -91,7 +88,7 @@ impl<R: Read> Index<R> {
     /// Returns a `Result` containing the parsed `Index` instance, or an `anyhow::Error`
     /// if an error occurs.
     fn parse_index(file: R) -> anyhow::Result<Index<R>> {
-        let mut reader = BufReader::new(file);
+        let mut reader = std::io::BufReader::new(file);
         // let mut hasher = Sha1::new();
 
         // Parse signature from header and check its validity. The signature should be "DIRC".
@@ -153,7 +150,7 @@ impl<R: Read> Index<R> {
                 }
             }
             // hasher.update(&entry);
-            let mut cursor = Cursor::new(&entry);
+            let mut cursor = std::io::Cursor::new(&entry);
             entries.push(IndexEntry::parse(&mut cursor)?);
         }
 
@@ -204,8 +201,8 @@ impl<R: Read> Index<R> {
     ///
     /// Returns a `Result` containint `()` if the index was written successfully, or an
     /// `anyhow::Error` if an error occurs.
-    pub(crate) fn write(mut self, path: impl AsRef<Path>) -> anyhow::Result<()> {
-        let mut file = OpenOptions::new()
+    pub(crate) fn write(mut self, path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
+        let mut file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .truncate(true)

@@ -1,5 +1,6 @@
 mod cmp;
 mod commands;
+mod config;
 mod index;
 mod objects;
 
@@ -40,6 +41,15 @@ fn main() -> anyhow::Result<()> {
             Some(path) => commands::write_tree::invoke(std::path::Path::new(&path))?,
             None => commands::write_tree::invoke(std::path::Path::new("."))?,
         },
+
+        // Commit tree
+        Commands::CommitTree {
+            tree_hash,
+            parent_hash,
+            message,
+        } => {
+            commands::commit_tree::invoke(tree_hash, parent_hash, message)?;
+        }
 
         // List files in index
         Commands::LsFiles => commands::ls_files::invoke(".git/index")?,
